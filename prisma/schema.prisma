@@ -77,7 +77,27 @@ model Verdict {
   debate        Debate   @relation(fields: [debateId], references: [id])
 }
 
-enum DebateState { WAITING TOPIC_REVEAL ROUND VOTING VERDICT FINISHED }
-enum Slot { A B }
-enum Dimension { LOGIC EVIDENCE PERSUASION }
-enum VoteValue { FOR AGAINST }
+enum DebateState {
+  WAITING
+  TOPIC_REVEAL
+  ROUND
+  VOTING
+  VERDICT
+  FINISHED
+}
+
+enum Slot {
+  A
+  B
+}
+
+enum Dimension {
+  LOGIC
+  EVIDENCE
+  PERSUASION
+}
+
+enum VoteValue {
+  FOR
+  AGAINST
+}
