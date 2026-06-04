@@ -24,7 +24,6 @@ app.prepare().then(() => {
     },
   });
 
-  // We'll fill this in Step 3
   registerSocketHandlers(io);
 
   httpServer.listen(port, () => {
