@@ -1,13 +1,83 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
+
+model Debate {
+  id           String        @id @default(cuid())
+  roomId       String        @unique
+  topic        String
+  state        DebateState   @default(WAITING)
+  totalRounds  Int           @default(2)
+  createdAt    DateTime      @default(now())
+  finishedAt   DateTime?
+  participants Participant[]
+  arguments    Argument[]
+  votes        Vote[]
+  verdict      Verdict?
+}
+
+model Participant {
+  id          String     @id @default(cuid())
+  debateId    String
+  slot        Slot
+  displayName String
+  age         Int
+  joinedAt    DateTime   @default(now())
+  debate      Debate     @relation(fields: [debateId], references: [id])
+  arguments   Argument[]
+  @@unique([debateId, slot])
+}
+
+model Argument {
+  id            String      @id @default(cuid())
+  debateId      String
+  participantId String
+  roundNumber   Int
+  text          String      @db.Text
+  submittedAt   DateTime    @default(now())
+  debate        Debate      @relation(fields: [debateId], references: [id])
+  participant   Participant @relation(fields: [participantId], references: [id])
+  scores        Score[]
+}
+
+model Score {
+  id          String    @id @default(cuid())
+  argumentId  String
+  dimension   Dimension
+  score       Int
+  critique    String    @db.Text
+  scoredAt    DateTime  @default(now())
+  argument    Argument  @relation(fields: [argumentId], references: [id])
+}
+
+model Vote {
+  id        String    @id @default(cuid())
+  debateId  String
+  sessionId String
+  value     VoteValue
+  timestamp DateTime  @default(now())
+  debate    Debate    @relation(fields: [debateId], references: [id])
+  @@unique([debateId, sessionId])
+}
+
+model Verdict {
+  id            String   @id @default(cuid())
+  debateId      String   @unique
+  winnerId      String?
+  reasoning     String   @db.Text
+  strongestForA String   @db.Text
+  strongestForB String   @db.Text
+  turningPoint  String   @db.Text
+  generatedAt   DateTime @default(now())
+  debate        Debate   @relation(fields: [debateId], references: [id])
+}
+
+enum DebateState { WAITING TOPIC_REVEAL ROUND VOTING VERDICT FINISHED }
+enum Slot { A B }
+enum Dimension { LOGIC EVIDENCE PERSUASION }
+enum VoteValue { FOR AGAINST }
