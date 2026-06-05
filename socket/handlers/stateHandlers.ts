@@ -20,10 +20,100 @@ function broadcastState(io: Server, roomId: string, state: LiveRoomState){
   });
 }
 
+export async function transitionToTopicReveal(io: Server, roomId: string){
+  const state = await getRoomState(roomId);
+  if(!state || !canTransition(state.state, 'TOPIC_REVEAL')) return;
+  state.state = 'TOPIC_REVEAL';
+  state.topicRevealEndsAt = Date.now() + TOPIC_REVEAL_MS;
+  await setRoomState(roomId, state);
+  await prisma.debate.update({ where: { roomId }, data: { state: "TOPIC_REVEAL" } });
+  await broadcastState(io, roomId, state);
+  scheduleTransition(io, roomId, TOPIC_REVEAL_MS, () => transitionToRound(io, roomId));
+}
+
 export async function transitionToRound(io: Server, roomId: string){
+  const state = await getRoomState(roomId);
+  if(!state) return;
+  if (state.state === "TOPIC_REVEAL") {
+    if (!canTransition(state.state, "ROUND")) return;
+    state.state = "ROUND";
+    state.activeSlot = "A";
+    state.currentRound = 1;
+  }
+  state.roundEndsAt = Date.now() + ROUND_MS;
+  await setRoomState(roomId, state);
+  await prisma.debate.update({ where: { roomId }, data: { state: "ROUND" } });
+  await broadcastState(io, roomId, state);
+  scheduleTransition(io, roomId, ROUND_MS, () => handleTurnTimeout(io, roomId));
+}
+
+async function handleTurnTimeout(io: Server, roomId: string){
+  const state = await getRoomState(roomId);
+  if(!state || state.state !== 'ROUND') return;
+
+  io.to(`room:${roomId}`).emit("debate:turn_timeout", {
+    slot: state.activeSlot
+  });
+  
+  advanceTurn(io, roomId);
+}
+
+export async function advanceTurn(io: Server, roomId: string){
+  const state = await getRoomState(roomId);
+  if(!state || state.state !== 'ROUND') return;
+  clearRoomTimer(roomId);
+
+  const res = advanceRound({
+    currentRound: state.currentRound,
+    activeSlot: state.activeSlot!,
+    totalRounds: state.totalRounds
+  });
+
+  if(res == null){
+    await transitionToVoting(io, roomId);
+    return;
+  }
+  else{
+    state.currentRound = res.currentRound;
+    state.activeSlot = res.activeSlot;
+    state.roundEndsAt = Date.now() + ROUND_MS;
+    await setRoomState(roomId, state);
+    await broadcastState(io, roomId, state);
+    scheduleTransition(io, roomId, ROUND_MS, () => handleTurnTimeout(io, roomId));
+  }
 
 }
 
-export async function transitionToVerdict(io: Server, roomId: string){
 
+export async function transitionToVoting(io:Server, roomId: string){
+  const state = await getRoomState(roomId);
+  if(!state || !canTransition(state.state, 'VOTING')) return;
+  state.state = 'VOTING';
+  state.activeSlot = null;
+  state.roundEndsAt = null;
+  state.votingEndsAt = Date.now() + VOTING_MS;
+  await setRoomState(roomId, state);
+  await prisma.debate.update({ where: { roomId }, data: { state: "VOTING" } });
+  await broadcastState(io, roomId, state);
+  scheduleTransition(io, roomId, VOTING_MS, () => transitionToVerdict(io, roomId));
+}
+
+export async function transitionToVerdict(io: Server, roomId: string){
+  const state = await getRoomState(roomId);
+  if(!state || !canTransition(state.state, 'VERDICT')) return;
+  state.state = 'VERDICT';
+  state.votingEndsAt = null;
+  await setRoomState(roomId, state);
+  await prisma.debate.update({ where: { roomId }, data: { state: "VERDICT" } });
+  await broadcastState(io, roomId, state);
+  io.to(`room:${roomId}`).emit("debate:verdict_generating");
+}
+
+export async function transitionToFinished(io: Server, roomId: string){
+  const state = await getRoomState(roomId);
+  if (!state || !canTransition(state.state, "FINISHED")) return;
+  state.state = "FINISHED";
+  await setRoomState(roomId, state);
+  await prisma.debate.update({ where: { roomId }, data: { state: "FINISHED", finishedAt: new Date() } });
+  await broadcastState(io, roomId, state);
 }
