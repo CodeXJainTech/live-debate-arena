@@ -3,6 +3,7 @@ import { prisma } from "../../libs/prisma";
 import { getRoomState, setRoomState, LiveRoomState } from "../roomState";
 import { canTransition, advanceRound } from "../stateMachine";
 import { scheduleTransition, clearRoomTimer } from "../timers";
+import { startVotePulse, stopVotePulse } from "../votepulse";
 
 const TOPIC_REVEAL_MS = 10_000;
 const ROUND_MS = 120_000;
@@ -44,6 +45,7 @@ export async function transitionToRound(io: Server, roomId: string){
   await setRoomState(roomId, state);
   await prisma.debate.update({ where: { roomId }, data: { state: "ROUND" } });
   await broadcastState(io, roomId, state);
+  startVotePulse(io, roomId);
   scheduleTransition(io, roomId, ROUND_MS, () => handleTurnTimeout(io, roomId));
 }
 
@@ -106,6 +108,7 @@ export async function transitionToVerdict(io: Server, roomId: string){
   await setRoomState(roomId, state);
   await prisma.debate.update({ where: { roomId }, data: { state: "VERDICT" } });
   await broadcastState(io, roomId, state);
+  stopVotePulse(roomId);
   io.to(`room:${roomId}`).emit("debate:verdict_generating");
 }
 

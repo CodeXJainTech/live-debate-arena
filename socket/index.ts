@@ -7,9 +7,10 @@ import {
   addConnectedSlot,
   removeConnectedSlot,
 } from "./roomState";
-import { canStartDebate, canSubmitArgument } from "./stateMachine";
+import { canStartDebate, canSubmitArgument, canVote } from "./stateMachine";
 import { transitionToTopicReveal, advanceTurn } from "./handlers/stateHandlers";
 import { rehydrateTimers } from "./timers";
+import { castVote } from "@/libs/votes";
 
 const secret = new TextEncoder().encode(process.env.DEBATER_JWT_SECRET!);
 
@@ -166,6 +167,24 @@ export async function registerSocketHandlers(io: Server) {
 
       await advanceTurn(io, user.roomId);
     });
+    
+    socket.on("vote:cast", async (data: {value: "FOR" | "AGAINST"}) => {
+      const state = await getRoomState(user.roomId);
+      if(!state) {
+        return;
+      }
+      if(!canVote(state.state)){
+        return socket.emit("error", { message: "Voting is not open" });
+      }
+
+      if (data.value !== "FOR" && data.value !== "AGAINST"){
+        return socket.emit("error", { message: "Invalid vote value" });
+      }
+
+      await castVote(user.roomId, user.sessionId, data.value);
+      socket.emit("vote:confirmed", { value: data.value });
+    });
+
 
     socket.on("disconnect", async () => {
       if (user.role === "debater" && user.slot)
