@@ -1,5 +1,5 @@
-import { scoreEvidence, scoreLogic, scorePersuasion } from "@/libs/gemini";
-import { prisma } from "@/libs/prisma";
+import { scoreEvidence, scoreLogic, scorePersuasion } from "../../libs/gemini";
+import { prisma } from "../../libs/prisma";
 import { Server } from "socket.io";
 
 export async function scoreArgument(io: Server, roomId: string, argumentId: string, topic: string, argumentText: string, slot: "A" | "B") {

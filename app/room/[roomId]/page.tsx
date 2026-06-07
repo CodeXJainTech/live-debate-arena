@@ -1,11 +1,12 @@
 "use client";
-
 import { useSearchParams, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import JoinModal from "@/components/JoinModal";
+import DebateRoom from "@/components/DebateRoom";
 import { getSocket, disconnectSocket } from "@/libs/socket";
 import { jwtDecode } from "jwt-decode";
+import { Socket } from "socket.io-client";
 
 interface TokenPayload {
   roomId: string;
@@ -18,58 +19,52 @@ export default function DebaterRoomPage() {
   const roomId = params.roomId as string;
   const token = searchParams.get("token");
 
-  const [joined, setJoined] = useState(false);
-  const [roomState, setRoomState] = useState<any>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [error, setError] = useState("");
 
   let slot: "A" | "B" | null = null;
   if (token) {
     try {
-      const decoded = jwtDecode<TokenPayload>(token);
-      slot = decoded.slot;
-    } catch {
-    }
+      slot = jwtDecode<TokenPayload>(token).slot;
+    } catch {}
   }
 
-  if (!token) {
+  useEffect(
+    () => () => {
+      disconnectSocket();
+    },[],
+  );
+
+  if (!token)
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">Invalid debater link. No token found.</p>
+        <p className="text-gray-500 text-sm">Invalid debater link.</p>
       </div>
     );
-  }
 
   function handleJoin(displayName: string, age: number) {
-    const sessionId = uuidv4();
-    const socket = getSocket({ roomId, displayName, age, sessionId, token: token! });
-
-    socket.on("room:state", (state) => {
-      setRoomState(state);
-      setJoined(true);
+    const s = getSocket({
+      roomId,
+      displayName,
+      age,
+      sessionId: uuidv4(),
+      token: token!,
     });
-
-    socket.on("connect_error", (err) => {
+    s.on("connect_error", (err) => {
       setError(err.message);
       disconnectSocket();
     });
+    setSocket(s);
   }
 
-  useEffect(() => {
-    return () => { disconnectSocket(); };
-  }, []);
-
-  if (error) {
+  if (error)
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500 font-medium">Could not join room</p>
-          <p className="text-gray-500 text-sm mt-1">{error}</p>
-        </div>
+        <p className="text-red-500 text-sm">{error}</p>
       </div>
     );
-  }
 
-  if (!joined) {
+  if (!socket)
     return (
       <JoinModal
         roomId={roomId}
@@ -78,14 +73,6 @@ export default function DebaterRoomPage() {
         onJoin={handleJoin}
       />
     );
-  }
 
-  return (
-    <div className="min-h-screen p-8">
-      <pre className="text-xs text-gray-400">
-        {JSON.stringify(roomState, null, 2)}
-      </pre>
-
-    </div>
-  );
+  return <DebateRoom socket={socket} roomId={roomId} />;
 }

@@ -26,13 +26,13 @@ export interface ArgumentEvent {
   submittedAt: string;
 }
 
-export function useDebateState(socket: Socket | null){
+export function useDebateState(socket: Socket | null) {
   const [roomState, setRoomState] = useState<DebateRoomState | null>(null);
   const [argumentts, setArgumentts] = useState<ArgumentEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if(!socket) return;
+    if (!socket) return;
     socket.on("room:state", (data: DebateRoomState) => setRoomState(data));
     socket.on("debate:state_changed", (data: Partial<DebateRoomState>) =>
       setRoomState((prev) => (prev ? { ...prev, ...data } : null))

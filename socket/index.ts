@@ -10,7 +10,7 @@ import {
 import { canStartDebate, canSubmitArgument, canVote } from "./stateMachine";
 import { transitionToTopicReveal, advanceTurn } from "./handlers/stateHandlers";
 import { rehydrateTimers } from "./timers";
-import { castVote } from "@/libs/votes";
+import { castVote } from "../libs/votes";
 import { scoreArgument } from "./handlers/scoringHandler";
 
 const secret = new TextEncoder().encode(process.env.DEBATER_JWT_SECRET!);
