@@ -11,6 +11,7 @@ import { canStartDebate, canSubmitArgument, canVote } from "./stateMachine";
 import { transitionToTopicReveal, advanceTurn } from "./handlers/stateHandlers";
 import { rehydrateTimers } from "./timers";
 import { castVote } from "@/libs/votes";
+import { scoreArgument } from "./handlers/scoringHandler";
 
 const secret = new TextEncoder().encode(process.env.DEBATER_JWT_SECRET!);
 
@@ -164,7 +165,7 @@ export async function registerSocketHandlers(io: Server) {
         text,
         submittedAt: argument.submittedAt,
       });
-
+      scoreArgument(io, user.roomId, argument.id, debate!.topic, text, user.slot);
       await advanceTurn(io, user.roomId);
     });
     
