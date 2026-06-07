@@ -29,11 +29,31 @@ export default function DebaterRoomPage() {
     } catch {}
   }
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    const savedSession = sessionStorage.getItem(`debate-session-${roomId}`);
+    if (savedSession && token) {
+      try {
+        const parsed = JSON.parse(savedSession);
+        const s = getSocket({
+          roomId,
+          displayName: parsed.displayName,
+          age: parsed.age,
+          sessionId: parsed.sessionId,
+          token,
+        });
+        s.on("connect_error", (err) => {
+          setError(err.message);
+          disconnectSocket();
+          sessionStorage.removeItem(`debate-session-${roomId}`);
+        });
+        setSocket(s);
+      } catch {}
+    }
+
+    return () => {
       disconnectSocket();
-    },[],
-  );
+    };
+  }, [roomId, token]);
 
   if (!token)
     return (
@@ -43,16 +63,20 @@ export default function DebaterRoomPage() {
     );
 
   function handleJoin(displayName: string, age: number) {
+    const sessionId = uuidv4();
+    sessionStorage.setItem(`debate-session-${roomId}`, JSON.stringify({ displayName, age, sessionId }));
+    
     const s = getSocket({
       roomId,
       displayName,
       age,
-      sessionId: uuidv4(),
+      sessionId,
       token: token!,
     });
     s.on("connect_error", (err) => {
       setError(err.message);
       disconnectSocket();
+      sessionStorage.removeItem(`debate-session-${roomId}`);
     });
     setSocket(s);
   }

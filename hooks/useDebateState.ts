@@ -15,6 +15,7 @@ export interface DebateRoomState {
   yourRole: "debater" | "audience";
   yourSlot: "A" | "B" | null;
   yourName: string;
+  connectedSlots?: ("A" | "B")[];
 }
 
 export interface ArgumentEvent {
@@ -44,11 +45,38 @@ export function useDebateState(socket: Socket | null) {
       setError(data.message);
       setTimeout(() => setError(null), 4000);
     });
+    socket.on("room:peer_joined", (peer: { role: string; slot: "A" | "B" | null }) => {
+      if (peer.role === "debater" && peer.slot) {
+        const joinedSlot = peer.slot;
+        setRoomState((prev) => {
+          if (!prev) return prev;
+          const slots = prev.connectedSlots || [];
+          if (!slots.includes(joinedSlot)) {
+            return { ...prev, connectedSlots: [...slots, joinedSlot] };
+          }
+          return prev;
+        });
+      }
+    });
+    
+    socket.on("room:peer_left", (peer: { role: string; slot: "A" | "B" | null }) => {
+      if (peer.role === "debater" && peer.slot) {
+        const leftSlot = peer.slot;
+        setRoomState((prev) => {
+          if (!prev) return prev;
+          const slots = prev.connectedSlots || [];
+          return { ...prev, connectedSlots: slots.filter((s) => s !== leftSlot) };
+        });
+      }
+    });
+
     return () => {
       socket.off("room:state");
       socket.off("debate:state_changed");
       socket.off("debate:argument_submitted");
       socket.off("error");
+      socket.off("room:peer_joined");
+      socket.off("room:peer_left");
     };
   }, [socket]);
 

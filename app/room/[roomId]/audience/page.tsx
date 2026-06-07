@@ -14,18 +14,40 @@ export default function AudienceRoomPage() {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [error, setError] = useState("");
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    const savedSession = sessionStorage.getItem(`debate-session-audience-${roomId}`);
+    if (savedSession) {
+      try {
+        const parsed = JSON.parse(savedSession);
+        const s = getSocket({
+          roomId,
+          displayName: parsed.displayName,
+          age: parsed.age,
+          sessionId: parsed.sessionId,
+        });
+        s.on("connect_error", (err) => {
+          setError(err.message);
+          disconnectSocket();
+          sessionStorage.removeItem(`debate-session-audience-${roomId}`);
+        });
+        setSocket(s);
+      } catch {}
+    }
+
+    return () => {
       disconnectSocket();
-    },
-    [],
-  );
+    };
+  }, [roomId]);
 
   function handleJoin(displayName: string, age: number) {
-    const s = getSocket({ roomId, displayName, age, sessionId: uuidv4() });
+    const sessionId = uuidv4();
+    sessionStorage.setItem(`debate-session-audience-${roomId}`, JSON.stringify({ displayName, age, sessionId }));
+    
+    const s = getSocket({ roomId, displayName, age, sessionId });
     s.on("connect_error", (err) => {
       setError(err.message);
       disconnectSocket();
+      sessionStorage.removeItem(`debate-session-audience-${roomId}`);
     });
     setSocket(s);
   }

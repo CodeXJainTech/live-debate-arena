@@ -19,7 +19,7 @@ export default function Timer({endsAt, label}: Props){
     }
   });
 
-  const mins = secondLeft/60;
+  const mins = Math.floor(secondLeft / 60);
   const secs = secondLeft%60;
   const showing = `${String(mins).padStart(2,"0")}:${String(secs).padStart(2,"0")}`;
   const showRed = (secondLeft <= 30);

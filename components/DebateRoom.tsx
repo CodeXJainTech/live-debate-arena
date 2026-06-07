@@ -8,6 +8,7 @@ import WaitingRoom from "./WaitingRoom";
 import ArgumentCard from "./ArgumentCard";
 import OpinionMeter from "./OpinionMeter";
 import Timer from "./Timer";
+import { useVerdict } from "@/hooks/useVerdict";
 
 interface Props {
   socket: Socket;
@@ -20,6 +21,7 @@ export default function DebateRoom({ socket, roomId }: Props) {
     useVotes(socket);
   const { scores } = useScores(socket);
   const [input, setInput] = useState("");
+  const { verdict, verdictError, isTimedOut } = useVerdict(socket);
 
   if (!roomState) {
     return (
@@ -63,20 +65,70 @@ export default function DebateRoom({ socket, roomId }: Props) {
     );
   }
 
-  if (roomState.state === "VERDICT") {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500 text-sm">Generating verdict...</p>
+  if (roomState.state === "FINISHED" || roomState.state === "VERDICT") {
+    if (verdictError)
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <p className="text-red-500 text-sm">{verdictError}</p>
+        </div>
+      );
+
+    if (!verdict) return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center space-y-2">
+          <p className="text-gray-500 text-sm">
+            {isTimedOut
+              ? "Taking longer than expected..."
+              : "Generating verdict..."}
+          </p>
+          {isTimedOut && (
+            <p className="text-gray-400 text-xs">
+              The database may be waking up. Hang tight or refresh the page.
+            </p>
+          )}
+        </div>
       </div>
     );
-  }
 
-  if (roomState.state === "FINISHED") {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500 text-sm">
-          Debate finished. Verdict coming in Step 8.
-        </p>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-xl space-y-4">
+          <div className="text-center">
+            <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
+              Winner
+            </p>
+            <p className="text-2xl font-semibold text-gray-900">
+              {verdict.winnerId ? `Debater ${verdict.winnerId}` : "Draw"}
+            </p>
+          </div>
+
+          <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-4">
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
+                Reasoning
+              </p>
+              <p className="text-sm text-gray-700">{verdict.reasoning}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
+                Strongest moment · Debater A
+              </p>
+              <p className="text-sm text-gray-700">{verdict.strongestForA}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
+                Strongest moment · Debater B
+              </p>
+              <p className="text-sm text-gray-700">{verdict.strongestForB}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
+                Turning point
+              </p>
+              <p className="text-sm text-gray-700">{verdict.turningPoint}</p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

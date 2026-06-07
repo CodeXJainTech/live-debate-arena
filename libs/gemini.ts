@@ -3,7 +3,10 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export const flashModel = genAI.getGenerativeModel({
-  model: "gemini-3.0-flash",
+  model: "gemini-3.5-flash",
+  generationConfig: {
+    responseMimeType: "application/json",
+  },
 });
 
 export async function scoreLogic(
@@ -82,4 +85,61 @@ Respond in this exact JSON format with no other text:
   const text = result.response.text().trim();
   const clean = text.replace(/```json|```/g, "").trim();
   return JSON.parse(clean);
+}
+
+export async function generateVerdict(
+  topic: string,
+  transcript: {
+    slot: "A" | "B";
+    displayName: string;
+    roundNumber: number;
+    text: string;
+  }[],
+): Promise<{
+  winnerId: "A" | "B" | null;
+  reasoning: string;
+  strongestForA: string;
+  strongestForB: string;
+  turningPoint: string;
+}> {
+  const formatted = transcript
+    .map(
+      (t) =>
+        `[Round ${t.roundNumber} - Debater ${t.slot} (${t.displayName})]: ${t.text}`,
+    )
+    .join("\n\n");
+
+  const prompt = `You are judging a formal debate. Analyze the full transcript below and produce a verdict.
+
+Topic: "${topic}"
+
+Transcript:
+${formatted}
+
+Evaluate who made the stronger overall case based on logic, evidence, and persuasion across all rounds.
+
+Respond in this exact JSON format with no other text:
+{
+  "winner": "A" (or "B", or null),
+  "reasoning": "<3-4 sentences explaining why this debater won overall>",
+  "strongestForA": "<1-2 sentences identifying debater A's strongest moment>",
+  "strongestForB": "<1-2 sentences identifying debater B's strongest moment>",
+  "turningPoint": "<1-2 sentences identifying the moment that most shifted the debate>"
+}`;
+
+  const result = await flashModel.generateContent(prompt);
+  const clean = result.response
+    .text()
+    .trim()
+    .replace(/```json|```/g, "")
+    .trim();
+  const parsed = JSON.parse(clean);
+
+  return {
+    winnerId: parsed.winner,
+    reasoning: parsed.reasoning,
+    strongestForA: parsed.strongestForA,
+    strongestForB: parsed.strongestForB,
+    turningPoint: parsed.turningPoint,
+  };
 }
