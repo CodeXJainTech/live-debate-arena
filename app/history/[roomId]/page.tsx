@@ -50,10 +50,11 @@ const SLOT_COLORS: Record<string, string> = {
 export default async function HistoryPage({
   params,
 }: {
-  params: { roomId: string };
+  params: Promise<{ roomId: string }>;
 }) {
+  const { roomId } = await params;
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_APP_URL}/api/rooms/${params.roomId}`,
+    `${process.env.NEXT_PUBLIC_APP_URL}/api/rooms/${roomId}`,
     { cache: "no-store" },
   );
 
@@ -63,8 +64,12 @@ export default async function HistoryPage({
 
   if (debate.state !== "FINISHED") {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-400 text-sm">Debate not finished yet.</p>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-2">
+        <p className="text-gray-500 text-sm">
+          {debate.state === "VERDICT"
+            ? "Verdict is being generated… check back in a moment."
+            : "Debate not finished yet."}
+        </p>
       </div>
     );
   }

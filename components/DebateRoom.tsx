@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Socket } from "socket.io-client";
 import { useDebateState } from "@/hooks/useDebateState";
 import { useVotes } from "@/hooks/useVotes";
@@ -21,7 +22,16 @@ export default function DebateRoom({ socket, roomId }: Props) {
     useVotes(socket);
   const { scores } = useScores(socket);
   const [input, setInput] = useState("");
-  const { verdict, verdictError, isTimedOut } = useVerdict(socket);
+  const router = useRouter();
+  const { verdict, verdictError, isTimedOut } = useVerdict(socket, roomId);
+
+  // Must be here (before any conditional returns) — Rules of Hooks.
+  // If debate is already FINISHED on connect/reload, redirect to history.
+  useEffect(() => {
+    if (roomState?.state === "FINISHED") {
+      router.replace(`/history/${roomId}`);
+    }
+  }, [roomState?.state, roomId, router]);
 
   if (!roomState) {
     return (
@@ -65,30 +75,42 @@ export default function DebateRoom({ socket, roomId }: Props) {
     );
   }
 
-  if (roomState.state === "FINISHED" || roomState.state === "VERDICT") {
+
+
+  if (roomState.state === "FINISHED") {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-400 text-sm">Redirecting to history...</p>
+      </div>
+    );
+  }
+
+  if (roomState.state === "VERDICT") {
     if (verdictError)
       return (
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-screen flex flex-col items-center justify-center gap-2">
           <p className="text-red-500 text-sm">{verdictError}</p>
+          <p className="text-gray-400 text-xs">Redirecting to history...</p>
         </div>
       );
 
-    if (!verdict) return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="text-center space-y-2">
-          <p className="text-gray-500 text-sm">
-            {isTimedOut
-              ? "Taking longer than expected..."
-              : "Generating verdict..."}
-          </p>
-          {isTimedOut && (
-            <p className="text-gray-400 text-xs">
-              The database may be waking up. Hang tight or refresh the page.
+    if (!verdict)
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <div className="text-center space-y-2">
+            <p className="text-gray-500 text-sm">
+              {isTimedOut
+                ? "Taking longer than expected..."
+                : "Generating verdict..."}
             </p>
-          )}
+            {isTimedOut && (
+              <p className="text-gray-400 text-xs">
+                The database may be waking up. Hang tight or refresh the page.
+              </p>
+            )}
+          </div>
         </div>
-      </div>
-    );
+      );
 
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -128,6 +150,10 @@ export default function DebateRoom({ socket, roomId }: Props) {
               <p className="text-sm text-gray-700">{verdict.turningPoint}</p>
             </div>
           </div>
+
+          <p className="text-center text-xs text-gray-400">
+            Redirecting to full history in a moment...
+          </p>
         </div>
       </div>
     );

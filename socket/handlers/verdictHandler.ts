@@ -39,6 +39,8 @@ export async function runVerdictEngine(io: Server, roomId: string) {
       io.to(`room:${roomId}`).emit("verdict:error", {
         message: "No arguments to judge",
       });
+      // not stuck in verdict state
+      await transitionToFinished(io, roomId);
       return;
     }
 
@@ -70,10 +72,12 @@ export async function runVerdictEngine(io: Server, roomId: string) {
     io.to(`room:${roomId}`).emit("verdict:ready", result);
     await transitionToFinished(io, roomId);
   } catch(err) {
-    // console.log("Verdict error:", err);
+    console.error("Verdict generation error:", err);
     io.to(`room:${roomId}`).emit("verdict:error", {
       message:
-        "Failed to generate verdict after multiple attempts. Please refresh.",
+        "Failed to generate verdict. The debate will still be saved.",
     });
+    // not stuck in verdict state.
+    await transitionToFinished(io, roomId);
   }
 }
