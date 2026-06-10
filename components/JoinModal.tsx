@@ -46,7 +46,7 @@ export default function JoinModal({
           <h1 className="text-2xl font-semibold text-gray-900">
             Join room {roomId}
           </h1>
-          <p className="text-gray-500 text-sm mt-1">
+          <p className="text-gray-600 text-sm mt-1">
             {role === "debater"
               ? "You've been invited to debate. Enter your name to continue."
               : "You're joining as an audience member. Your votes will shift the opinion meter live."}
@@ -55,7 +55,7 @@ export default function JoinModal({
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-600 mb-1">
               Display name
             </label>
             <input
@@ -71,7 +71,7 @@ export default function JoinModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-600 mb-1">
               Age
             </label>
             <input
@@ -86,9 +86,7 @@ export default function JoinModal({
             />
           </div>
 
-          {error && (
-            <p className="text-red-500 text-sm">{error}</p>
-          )}
+          {error && <p className="text-red-500 text-sm">{error}</p>}
 
           <button
             onClick={handleSubmit}

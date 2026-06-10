@@ -58,14 +58,17 @@ export default function DebaterRoomPage() {
   if (!token)
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500 text-sm">Invalid debater link.</p>
+        <p className="text-gray-600 text-sm">Invalid debater link.</p>
       </div>
     );
 
   function handleJoin(displayName: string, age: number) {
     const sessionId = uuidv4();
-    sessionStorage.setItem(`debate-session-${roomId}`, JSON.stringify({ displayName, age, sessionId }));
-    
+    sessionStorage.setItem(
+      `debate-session-${roomId}`,
+      JSON.stringify({ displayName, age, sessionId }),
+    );
+
     const s = getSocket({
       roomId,
       displayName,

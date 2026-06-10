@@ -35,14 +35,14 @@ export default function HomePage() {
         <h1 className="text-2xl font-semibold text-gray-900 mb-1">
           Create a debate room
         </h1>
-        <p className="text-gray-500 text-sm mb-6">
+        <p className="text-gray-600 text-sm mb-6">
           Set a topic, choose rounds, share the links.
         </p>
 
         {!links ? (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-600 mb-1">
                 Debate topic
               </label>
               <input
@@ -55,7 +55,7 @@ export default function HomePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-600 mb-1">
                 Rounds per debater
               </label>
               <select
@@ -83,7 +83,7 @@ export default function HomePage() {
           </div>
         ) : (
           <div className="space-y-4">
-            <p className="text-sm font-medium text-gray-700">
+            <p className="text-sm font-medium text-gray-600">
               Room <span className="font-mono">{links.roomId}</span> created.
               Share these links:
             </p>
@@ -93,10 +93,15 @@ export default function HomePage() {
               { label: "Debater B", url: links.debaterLinkB },
               { label: "Audience", url: links.audienceLink },
             ].map(({ label, url }) => (
-              <div key={label} className="rounded-lg border border-gray-200 p-3">
-                <p className="text-xs font-medium text-gray-500 mb-1">{label}</p>
+              <div
+                key={label}
+                className="rounded-lg border border-gray-200 p-3"
+              >
+                <p className="text-xs font-medium text-gray-600 mb-1">
+                  {label}
+                </p>
                 <div className="flex items-center gap-2">
-                  <p className="text-xs font-mono text-gray-700 truncate flex-1">
+                  <p className="text-xs font-mono text-gray-600 truncate flex-1">
                     {url}
                   </p>
                   <button
@@ -111,7 +116,7 @@ export default function HomePage() {
 
             <button
               onClick={() => setLinks(null)}
-              className="w-full py-2 text-sm text-gray-500 hover:text-gray-700"
+              className="w-full py-2 text-sm text-gray-600 hover:text-gray-600"
             >
               Create another room
             </button>

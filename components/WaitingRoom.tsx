@@ -21,7 +21,7 @@ export default function WaitingRoom({
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
-        <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">
+        <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">
           Topic
         </p>
         <h1 className="text-2xl font-semibold text-gray-900 mb-8">{topic}</h1>
@@ -35,7 +35,7 @@ export default function WaitingRoom({
               <div
                 className={`w-2 h-2 rounded-full ${connectedSlots.includes(slot) ? "bg-green-500" : "bg-gray-300"}`}
               />
-              <span className="text-sm text-gray-700">Debater {slot}</span>
+              <span className="text-sm text-gray-600">Debater {slot}</span>
               {connectedSlots.includes(slot) && (
                 <span className="text-xs text-green-600 ml-auto">
                   Connected
@@ -55,19 +55,19 @@ export default function WaitingRoom({
               Start debate
             </button>
           ) : (
-            <p className="text-sm text-gray-400 text-center">
+            <p className="text-sm text-gray-500 text-center">
               Waiting for debater B to connect...
             </p>
           ))}
 
         {yourRole === "debater" && yourSlot === "B" && (
-          <p className="text-sm text-gray-400 text-center">
+          <p className="text-sm text-gray-500 text-center">
             Waiting for debater A to start...
           </p>
         )}
 
         {yourRole === "audience" && (
-          <p className="text-sm text-gray-400 text-center">
+          <p className="text-sm text-gray-500 text-center">
             Waiting for the debate to start...
           </p>
         )}

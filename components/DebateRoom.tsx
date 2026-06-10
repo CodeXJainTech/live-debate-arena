@@ -36,7 +36,7 @@ export default function DebateRoom({ socket, roomId }: Props) {
   if (!roomState) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-400 text-sm">Connecting...</p>
+        <p className="text-gray-500 text-sm">Connecting...</p>
       </div>
     );
   }
@@ -66,7 +66,7 @@ export default function DebateRoom({ socket, roomId }: Props) {
   if (roomState.state === "TOPIC_REVEAL") {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 gap-4">
-        <p className="text-xs text-gray-400 uppercase tracking-wide">Topic</p>
+        <p className="text-xs text-gray-500 uppercase tracking-wide">Topic</p>
         <h1 className="text-3xl font-semibold text-gray-900 text-center max-w-xl">
           {roomState.topic}
         </h1>
@@ -75,12 +75,10 @@ export default function DebateRoom({ socket, roomId }: Props) {
     );
   }
 
-
-
   if (roomState.state === "FINISHED") {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-400 text-sm">Redirecting to history...</p>
+        <p className="text-gray-500 text-sm">Redirecting to history...</p>
       </div>
     );
   }
@@ -90,7 +88,7 @@ export default function DebateRoom({ socket, roomId }: Props) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center gap-2">
           <p className="text-red-500 text-sm">{verdictError}</p>
-          <p className="text-gray-400 text-xs">Redirecting to history...</p>
+          <p className="text-gray-500 text-xs">Redirecting to history...</p>
         </div>
       );
 
@@ -98,13 +96,13 @@ export default function DebateRoom({ socket, roomId }: Props) {
       return (
         <div className="min-h-screen flex items-center justify-center p-4">
           <div className="text-center space-y-2">
-            <p className="text-gray-500 text-sm">
+            <p className="text-gray-600 text-sm">
               {isTimedOut
                 ? "Taking longer than expected..."
                 : "Generating verdict..."}
             </p>
             {isTimedOut && (
-              <p className="text-gray-400 text-xs">
+              <p className="text-gray-500 text-xs">
                 The database may be waking up. Hang tight or refresh the page.
               </p>
             )}
@@ -116,7 +114,7 @@ export default function DebateRoom({ socket, roomId }: Props) {
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-xl space-y-4">
           <div className="text-center">
-            <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
+            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
               Winner
             </p>
             <p className="text-2xl font-semibold text-gray-900">
@@ -126,32 +124,32 @@ export default function DebateRoom({ socket, roomId }: Props) {
 
           <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-4">
             <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
                 Reasoning
               </p>
-              <p className="text-sm text-gray-700">{verdict.reasoning}</p>
+              <p className="text-sm text-gray-600">{verdict.reasoning}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
                 Strongest moment · Debater A
               </p>
-              <p className="text-sm text-gray-700">{verdict.strongestForA}</p>
+              <p className="text-sm text-gray-600">{verdict.strongestForA}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
                 Strongest moment · Debater B
               </p>
-              <p className="text-sm text-gray-700">{verdict.strongestForB}</p>
+              <p className="text-sm text-gray-600">{verdict.strongestForB}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
                 Turning point
               </p>
-              <p className="text-sm text-gray-700">{verdict.turningPoint}</p>
+              <p className="text-sm text-gray-600">{verdict.turningPoint}</p>
             </div>
           </div>
 
-          <p className="text-center text-xs text-gray-400">
+          <p className="text-center text-xs text-gray-500">
             Redirecting to full history in a moment...
           </p>
         </div>
@@ -171,18 +169,18 @@ export default function DebateRoom({ socket, roomId }: Props) {
       {/* top bar */}
       <div className="border-b border-gray-200 bg-white px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-gray-700">
+          <span className="text-sm font-medium text-gray-600">
             {roomState.topic}
           </span>
           {roomState.state === "ROUND" && (
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-gray-500">
               Round {roomState.currentRound} of {roomState.totalRounds}
             </span>
           )}
         </div>
         <div className="flex items-center gap-4">
           {roomState.state === "ROUND" && roomState.activeSlot && (
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-gray-600">
               Debater {roomState.activeSlot}'s turn
             </span>
           )}
@@ -206,7 +204,7 @@ export default function DebateRoom({ socket, roomId }: Props) {
             />
           ))}
           {args.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-8">
+            <p className="text-sm text-gray-500 text-center py-8">
               No arguments yet. Waiting for debater A.
             </p>
           )}
@@ -228,7 +226,7 @@ export default function DebateRoom({ socket, roomId }: Props) {
               className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${
                 myVote === "FOR"
                   ? "bg-green-500 text-white border-green-500"
-                  : "border-gray-300 text-gray-700 hover:border-green-400"
+                  : "border-gray-300 text-gray-600 hover:border-green-400"
               }`}
             >
               For
@@ -238,7 +236,7 @@ export default function DebateRoom({ socket, roomId }: Props) {
               className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${
                 myVote === "AGAINST"
                   ? "bg-red-500 text-white border-red-500"
-                  : "border-gray-300 text-gray-700 hover:border-red-400"
+                  : "border-gray-300 text-gray-600 hover:border-red-400"
               }`}
             >
               Against
@@ -251,7 +249,7 @@ export default function DebateRoom({ socket, roomId }: Props) {
           <div className="border border-gray-200 rounded-xl p-4 bg-white">
             {isMyTurn ? (
               <>
-                <p className="text-xs text-gray-500 mb-2">
+                <p className="text-xs text-gray-600 mb-2">
                   Your turn — make your argument
                 </p>
                 <textarea
@@ -262,7 +260,7 @@ export default function DebateRoom({ socket, roomId }: Props) {
                   rows={4}
                 />
                 <div className="flex items-center justify-between mt-2">
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-gray-500">
                     {input.trim().length} chars
                   </span>
                   <button
@@ -275,7 +273,7 @@ export default function DebateRoom({ socket, roomId }: Props) {
                 </div>
               </>
             ) : (
-              <p className="text-sm text-gray-400 text-center py-2">
+              <p className="text-sm text-gray-500 text-center py-2">
                 Waiting for debater {roomState.activeSlot}...
               </p>
             )}

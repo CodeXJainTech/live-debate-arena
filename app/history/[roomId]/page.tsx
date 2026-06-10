@@ -65,7 +65,7 @@ export default async function HistoryPage({
   if (debate.state !== "FINISHED") {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-2">
-        <p className="text-gray-500 text-sm">
+        <p className="text-gray-600 text-sm">
           {debate.state === "VERDICT"
             ? "Verdict is being generated… check back in a moment."
             : "Debate not finished yet."}
@@ -79,13 +79,13 @@ export default async function HistoryPage({
       <div className="max-w-2xl mx-auto space-y-6">
         {/* header */}
         <div>
-          <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
+          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
             Debate recap
           </p>
           <h1 className="text-2xl font-semibold text-gray-900">
             {debate.topic}
           </h1>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-500 mt-1">
             {new Date(debate.createdAt).toLocaleDateString("en-US", {
               year: "numeric",
               month: "long",
@@ -98,7 +98,7 @@ export default async function HistoryPage({
         {debate.verdict && (
           <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-4">
             <div className="text-center pb-2 border-b border-gray-100">
-              <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
                 Winner
               </p>
               <p className="text-xl font-semibold text-gray-900">
@@ -108,34 +108,34 @@ export default async function HistoryPage({
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
                 Reasoning
               </p>
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-gray-600">
                 {debate.verdict.reasoning}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
                 Strongest moment · Debater A
               </p>
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-gray-600">
                 {debate.verdict.strongestForA}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
                 Strongest moment · Debater B
               </p>
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-gray-600">
                 {debate.verdict.strongestForB}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
                 Turning point
               </p>
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-gray-600">
                 {debate.verdict.turningPoint}
               </p>
             </div>
@@ -144,7 +144,7 @@ export default async function HistoryPage({
 
         {/* arguments */}
         <div>
-          <p className="text-xs text-gray-400 uppercase tracking-wide mb-3">
+          <p className="text-xs text-gray-500 uppercase tracking-wide mb-3">
             Arguments
           </p>
           <div className="space-y-3">
@@ -164,12 +164,12 @@ export default async function HistoryPage({
                       {arg.participant.displayName}
                     </span>
                   </div>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-gray-500">
                     Round {arg.roundNumber}
                   </span>
                 </div>
 
-                <p className="text-sm text-gray-700 leading-relaxed">
+                <p className="text-sm text-gray-600 leading-relaxed">
                   {arg.text}
                 </p>
 
@@ -178,7 +178,7 @@ export default async function HistoryPage({
                     {arg.scores.map((s) => (
                       <div key={s.dimension}>
                         <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-xs text-gray-500 w-20">
+                          <span className="text-xs text-gray-600 w-20">
                             {s.dimension}
                           </span>
                           <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -187,11 +187,11 @@ export default async function HistoryPage({
                               style={{ width: `${s.score * 10}%` }}
                             />
                           </div>
-                          <span className="text-xs font-medium text-gray-700 w-4">
+                          <span className="text-xs font-medium text-gray-600 w-4">
                             {s.score}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-400 ml-20">
+                        <p className="text-xs text-gray-500 ml-20">
                           {s.critique}
                         </p>
                       </div>
