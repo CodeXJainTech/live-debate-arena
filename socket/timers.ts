@@ -1,20 +1,25 @@
 import { Server } from "socket.io";
 import { getRoomState } from "./roomState";
+import { acquireLock, releaseLock } from "./redisLock";
 
 const activeTimers = new Map<string, NodeJS.Timeout>();
 
 export function clearRoomTimer(roomId:string){
-    const timer = activeTimers.get(roomId);
-    if(timer){
-        clearInterval(timer);
-        activeTimers.delete(roomId);
-    }
+  const timer = activeTimers.get(roomId);
+  if(timer){
+    clearInterval(timer);
+    activeTimers.delete(roomId);
+  }
+  releaseLock(`lock:timer:${roomId}`);
 }
 
-export function scheduleTransition(io: Server, roomId: string, delayMs: number, onExpire: () => Promise<void>){
+export async function scheduleTransition(io: Server, roomId: string, delayMs: number, onExpire: () => Promise<void>){
+  const locked = await acquireLock(`lock:timer:${roomId}`, Math.ceil(delayMs / 1000) + 10);
+  if (!locked) return;
   clearRoomTimer(roomId);
   const timer = setTimeout(async ()=>{
     activeTimers.delete(roomId);
+    await releaseLock(`lock:timer:${roomId}`);
     await onExpire();
   },delayMs);
   activeTimers.set(roomId,timer);
