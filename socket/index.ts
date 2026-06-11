@@ -15,6 +15,16 @@ import { scoreArgument } from "./handlers/scoringHandler";
 
 const secret = new TextEncoder().encode(process.env.DEBATER_JWT_SECRET!);
 
+//giving grace time for reconnecting.
+const RECONNECT_GRACE_MS = 30_000;
+
+// track pending disconnect timers per slot.
+const disconnectTimers = new Map<string, NodeJS.Timeout>();
+
+function disconnectKey(roomId: string, slot: string) {
+  return `${roomId}:${slot}`;
+}
+
 declare module "socket.io" {
   interface SocketData {
     user: {
@@ -94,10 +104,33 @@ export async function registerSocketHandlers(io: Server) {
     const { user } = socket.data;
     await socket.join(`room:${user.roomId}`);
 
-    if (user.role === "debater" && user.slot)
+    if (user.role === "debater" && user.slot) {
+      // cancel any pending disconnect timer for this slot.
+      const key = disconnectKey(user.roomId, user.slot);
+      const pending = disconnectTimers.get(key);
+      if (pending) {
+        clearTimeout(pending);
+        disconnectTimers.delete(key);
+        socket.to(`room:${user.roomId}`).emit("room:peer_reconnected", {
+          slot: user.slot,
+          displayName: user.displayName,
+        });
+      }
+
       await addConnectedSlot(user.roomId, user.slot);
+    }
 
     await rehydrateTimers(io, user.roomId);
+
+    const debate = await prisma.debate.findUnique({
+      where: { roomId: user.roomId },
+      include: {
+        arguments: {
+          include: { participant: true, scores: true },
+          orderBy: { submittedAt: "asc" },
+        },
+      },
+    });
 
     const roomState = await getRoomState(user.roomId);
     socket.emit("room:state", {
@@ -106,6 +139,24 @@ export async function registerSocketHandlers(io: Server) {
       yourSlot: user.slot ?? null,
       yourName: user.displayName,
     });
+
+    if (debate && debate.arguments.length > 0) {
+      socket.emit("room:history", {
+        arguments: debate.arguments.map((arg) => ({
+          argumentId: arg.id,
+          slot: arg.participant.slot,
+          displayName: arg.participant.displayName,
+          roundNumber: arg.roundNumber,
+          text: arg.text,
+          submittedAt: arg.submittedAt,
+          scores: arg.scores.map((s) => ({
+            dimension: s.dimension,
+            score: s.score,
+            critique: s.critique,
+          })),
+        })),
+      });
+    }
 
     socket.to(`room:${user.roomId}`).emit("room:peer_joined", {
       role: user.role,
@@ -165,20 +216,27 @@ export async function registerSocketHandlers(io: Server) {
         text,
         submittedAt: argument.submittedAt,
       });
-      scoreArgument(io, user.roomId, argument.id, debate!.topic, text, user.slot);
+      scoreArgument(
+        io,
+        user.roomId,
+        argument.id,
+        debate!.topic,
+        text,
+        user.slot,
+      );
       await advanceTurn(io, user.roomId);
     });
-    
-    socket.on("vote:cast", async (data: {value: "FOR" | "AGAINST"}) => {
+
+    socket.on("vote:cast", async (data: { value: "FOR" | "AGAINST" }) => {
       const state = await getRoomState(user.roomId);
-      if(!state) {
+      if (!state) {
         return;
       }
-      if(!canVote(state.state)){
+      if (!canVote(state.state)) {
         return socket.emit("error", { message: "Voting is not open" });
       }
 
-      if (data.value !== "FOR" && data.value !== "AGAINST"){
+      if (data.value !== "FOR" && data.value !== "AGAINST") {
         return socket.emit("error", { message: "Invalid vote value" });
       }
 
@@ -186,15 +244,35 @@ export async function registerSocketHandlers(io: Server) {
       socket.emit("vote:confirmed", { value: data.value });
     });
 
-
     socket.on("disconnect", async () => {
-      if (user.role === "debater" && user.slot)
-        await removeConnectedSlot(user.roomId, user.slot);
-      socket.to(`room:${user.roomId}`).emit("room:peer_left", {
-        role: user.role,
-        slot: user.slot ?? null,
-        displayName: user.displayName,
-      });
+      if (user.role === "debater" && user.slot) {
+        const key = disconnectKey(user.roomId, user.slot);
+
+        // notify room immediately that debater disconnected
+        socket.to(`room:${user.roomId}`).emit("room:peer_disconnected", {
+          slot: user.slot,
+          displayName: user.displayName,
+        });
+
+        // wait before actually removing the slot - give them time to reconnect
+        const timer = setTimeout(async () => {
+          disconnectTimers.delete(key);
+          await removeConnectedSlot(user.roomId, user.slot!);
+          socket.to(`room:${user.roomId}`).emit("room:peer_left", {
+            role: user.role,
+            slot: user.slot,
+            displayName: user.displayName,
+          });
+        }, RECONNECT_GRACE_MS);
+
+        disconnectTimers.set(key, timer);
+      } else {
+        socket.to(`room:${user.roomId}`).emit("room:peer_left", {
+          role: user.role,
+          slot: user.slot ?? null,
+          displayName: user.displayName,
+        });
+      }
     });
   });
 }
