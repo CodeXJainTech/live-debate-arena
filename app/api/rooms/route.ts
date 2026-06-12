@@ -3,7 +3,7 @@ import { prisma } from "@/libs/prisma";
 import { SignJWT } from "jose";
 import { v4 as uuidv4 } from "uuid";
 
-const secret = new TextEncoder().encode(process.env.DEBATER_JWT_SECRET!);
+const secret = new TextEncoder().encode(process.env.DEBATER_JWT_SECRET || "dummy-docker-setup");
 
 async function signDebaterToken(roomId: string, slot: "A" | "B") {
   return new SignJWT({ roomId, slot })

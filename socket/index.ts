@@ -13,7 +13,7 @@ import { rehydrateTimers } from "./timers";
 import { castVote } from "../libs/votes";
 import { scoreArgument } from "./handlers/scoringHandler";
 
-const secret = new TextEncoder().encode(process.env.DEBATER_JWT_SECRET!);
+const secret = new TextEncoder().encode(process.env.DEBATER_JWT_SECRET || "dummy-secret");
 
 //giving grace time for reconnecting.
 const RECONNECT_GRACE_MS = 30_000;
