@@ -6,6 +6,7 @@ import JoinModal from "@/components/JoinModal";
 import DebateRoom from "@/components/DebateRoom";
 import { getSocket, disconnectSocket } from "@/libs/socket";
 import { Socket } from "socket.io-client";
+import ErrorBoundary from "@/components/ErrorBoundry";
 
 export default function AudienceRoomPage() {
   const params = useParams();
@@ -62,5 +63,9 @@ export default function AudienceRoomPage() {
   if (!socket)
     return <JoinModal roomId={roomId} role="audience" onJoin={handleJoin} />;
 
-  return <DebateRoom socket={socket} roomId={roomId} />;
+  return (
+    <ErrorBoundary>
+      <DebateRoom socket={socket} roomId={roomId} />
+    </ErrorBoundary>
+  );
 }

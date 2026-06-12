@@ -7,6 +7,7 @@ import DebateRoom from "@/components/DebateRoom";
 import { getSocket, disconnectSocket } from "@/libs/socket";
 import { jwtDecode } from "jwt-decode";
 import { Socket } from "socket.io-client";
+import ErrorBoundary from "@/components/ErrorBoundry";
 
 interface TokenPayload {
   roomId: string;
@@ -101,5 +102,9 @@ export default function DebaterRoomPage() {
       />
     );
 
-  return <DebateRoom socket={socket} roomId={roomId} />;
+    return (
+      <ErrorBoundary>
+        <DebateRoom socket={socket} roomId={roomId} />
+      </ErrorBoundary>
+    );
 }
