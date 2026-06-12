@@ -1,4 +1,4 @@
-jest.mock("../lib/redis", () => ({
+jest.mock("../libs/redis", () => ({
   __esModule: true,
   default: {
     get: jest.fn(),
@@ -8,8 +8,8 @@ jest.mock("../lib/redis", () => ({
   },
 }));
 
-import redis from "../lib/redis";
-import { castVote, getVoteCounts } from "../lib/votes";
+import redis from "../libs/redis";
+import { castVote, getVoteCounts } from "../libs/votes";
 
 describe("castVote", () => {
   beforeEach(() => {

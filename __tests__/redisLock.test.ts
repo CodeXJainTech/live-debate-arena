@@ -1,4 +1,4 @@
-jest.mock("../lib/redis", () => ({
+jest.mock("../libs/redis", () => ({
   __esModule: true,
   default: {
     set: jest.fn(),
@@ -6,7 +6,7 @@ jest.mock("../lib/redis", () => ({
   },
 }));
 
-import redis from "../lib/redis";
+import redis from "../libs/redis";
 import { acquireLock, releaseLock } from "../socket/redisLock";
 
 describe("acquireLock", () => {
