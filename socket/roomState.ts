@@ -14,15 +14,17 @@ export interface LiveRoomState {
   votingEndsAt: number | null;
 }
 
+
 const KEY = (roomId: string) => `room:${roomId}:state`;
 const TTL = 60 * 60 * 24;
 
 export async function getRoomState(roomId: string): Promise<LiveRoomState | null> {
-  return await redis.get<LiveRoomState>(KEY(roomId));
+  const raw = await redis.get(KEY(roomId));
+  return raw ? (JSON.parse(raw) as LiveRoomState) : null;
 }
 
 export async function setRoomState(roomId: string, state: LiveRoomState): Promise<void> {
-  await redis.set(KEY(roomId), state, { ex: TTL });
+  await redis.set(KEY(roomId), JSON.stringify(state), "EX", TTL);
 }
 
 export async function initRoomState(roomId: string, debateId: string, topic: string, totalRounds: number): Promise<LiveRoomState> {
