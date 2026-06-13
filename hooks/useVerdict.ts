@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Socket } from "socket.io-client";
 
 export interface Verdict {
@@ -10,44 +9,38 @@ export interface Verdict {
   turningPoint: string;
 }
 
-export function useVerdict(socket: Socket | null, roomId: string) {
-  const router = useRouter();
+export function useVerdict(socket: Socket | null) {
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [verdictError, setVerdictError] = useState<string | null>(null);
   const [isTimedOut, setIsTimedOut] = useState(false);
-  const redirected = useRef(false);
+  const [isVeryLate, setIsVeryLate] = useState(false);
 
   useEffect(() => {
     if (!socket) return;
 
-    // if no verdict after 30 seconds, tell the user
-    const timeout = setTimeout(() => {
-      setIsTimedOut(true);
-    }, 30_000);
+    // first soft warning after 15s, escalates after 35s
+    const softTimeout = setTimeout(() => setIsTimedOut(true), 15_000);
+    const hardTimeout = setTimeout(() => setIsVeryLate(true), 35_000);
 
     socket.on("verdict:ready", (data: Verdict) => {
-      clearTimeout(timeout);
+      clearTimeout(softTimeout);
+      clearTimeout(hardTimeout);
       setVerdict(data);
-      // autodirecting to history page from here.
-      if (!redirected.current) {
-        redirected.current = true;
-        setTimeout(() => {
-          router.push(`/history/${roomId}`);
-        }, 3000);
-      }
     });
 
     socket.on("verdict:error", (data: { message: string }) => {
-      clearTimeout(timeout);
+      clearTimeout(softTimeout);
+      clearTimeout(hardTimeout);
       setVerdictError(data.message);
     });
 
     return () => {
-      clearTimeout(timeout);
+      clearTimeout(softTimeout);
+      clearTimeout(hardTimeout);
       socket.off("verdict:ready");
       socket.off("verdict:error");
     };
-  }, [socket, roomId, router]);
+  }, [socket]);
 
-  return { verdict, verdictError, isTimedOut };
+  return { verdict, verdictError, isTimedOut, isVeryLate };
 }

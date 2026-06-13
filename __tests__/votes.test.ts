@@ -24,7 +24,8 @@ describe("castVote", () => {
     expect(redis.set).toHaveBeenCalledWith(
       "room:ROOM1:vote:session1",
       "FOR",
-      { ex: 60 * 60 * 24 }
+      "EX",
+      60 * 60 * 24
     );
   });
 
@@ -51,8 +52,8 @@ describe("getVoteCounts", () => {
 
   it("returns counts from redis", async () => {
     (redis.get as jest.Mock)
-      .mockResolvedValueOnce(5)
-      .mockResolvedValueOnce(3);
+      .mockResolvedValueOnce("5")
+      .mockResolvedValueOnce("3");
 
     const result = await getVoteCounts("ROOM1");
     expect(result).toEqual({ for: 5, against: 3 });

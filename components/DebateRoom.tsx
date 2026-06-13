@@ -9,7 +9,6 @@ import WaitingRoom from "./WaitingRoom";
 import ArgumentCard from "./ArgumentCard";
 import OpinionMeter from "./OpinionMeter";
 import Timer from "./Timer";
-import Link from "next/link";
 
 interface Props {
   socket: Socket;
@@ -17,16 +16,11 @@ interface Props {
 }
 
 export default function DebateRoom({ socket, roomId }: Props) {
-  const {
-    roomState,
-    arguments: args,
-    error,
-    reconnecting,
-  } = useDebateState(socket);
+  const { roomState, arguments: args, error } = useDebateState(socket);
   const { forCount, againstCount, total, percentage, myVote, castVote } =
     useVotes(socket);
   const { scores } = useScores(socket);
-  const { verdict, verdictError, isTimedOut } = useVerdict(socket, roomId);
+  const { verdict, verdictError, isTimedOut, isVeryLate } = useVerdict(socket);
   const [input, setInput] = useState("");
 
   if (!roomState) {
@@ -74,8 +68,14 @@ export default function DebateRoom({ socket, roomId }: Props) {
   if (roomState.state === "VERDICT" || roomState.state === "FINISHED") {
     if (verdictError)
       return (
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-screen flex flex-col items-center justify-center gap-2 p-4">
           <p className="text-red-500 text-sm">{verdictError}</p>
+          <a
+            href={`/history/${roomId}`}
+            className="text-sm text-purple-600 hover:text-purple-700 underline"
+          >
+            View full debate analysis
+          </a>
         </div>
       );
 
@@ -83,14 +83,16 @@ export default function DebateRoom({ socket, roomId }: Props) {
       return (
         <div className="min-h-screen flex items-center justify-center p-4">
           <div className="text-center space-y-2">
-            <p className="text-gray-500 text-sm">
-              {isTimedOut
-                ? "Taking longer than expected..."
-                : "Generating verdict..."}
+            <p className="text-gray-700 text-sm">
+              {isVeryLate
+                ? "This is taking longer than usual..."
+                : isTimedOut
+                  ? "Still generating verdict..."
+                  : "Generating AI verdict..."}
             </p>
-            {isTimedOut && (
+            {isVeryLate && (
               <p className="text-gray-400 text-xs">
-                The database may be waking up. Hang tight or refresh.
+                Hang tight, this can take a little while during busy periods.
               </p>
             )}
           </div>
@@ -134,12 +136,12 @@ export default function DebateRoom({ socket, roomId }: Props) {
               <p className="text-sm text-gray-700">{verdict.turningPoint}</p>
             </div>
           </div>
-          <Link
+          <a
             href={`/history/${roomId}`}
-            className="block w-full text-center py-2 text-sm text-purple-600 hover:text-purple-700"
+            className="block w-full text-center py-2.5 border border-gray-300 hover:border-gray-400 text-gray-600 rounded-lg text-sm font-medium transition-colors"
           >
-            View full recap
-          </Link>
+            View Full Debate Analysis
+          </a>
         </div>
       </div>
     );
@@ -150,12 +152,6 @@ export default function DebateRoom({ socket, roomId }: Props) {
       {error && (
         <div className="bg-red-50 border-b border-red-200 px-4 py-2 text-sm text-red-600 text-center">
           {error}
-        </div>
-      )}
-
-      {reconnecting && (
-        <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2 text-sm text-yellow-700 text-center">
-          {reconnecting}
         </div>
       )}
 
