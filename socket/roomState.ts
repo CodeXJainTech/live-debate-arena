@@ -14,8 +14,18 @@ export interface LiveRoomState {
   votingEndsAt: number | null;
 }
 
+export interface HistoryArgument {
+  argumentId: string;
+  slot: Slot;
+  displayName: string;
+  roundNumber: number;
+  text: string;
+  submittedAt: string;
+  scores: { dimension: string; score: number | null; critique: string }[];
+}
 
 const KEY = (roomId: string) => `room:${roomId}:state`;
+const HISTORY_KEY = (roomId: string) => `room:${roomId}:history`;
 const TTL = 60 * 60 * 24;
 
 export async function getRoomState(roomId: string): Promise<LiveRoomState | null> {
@@ -52,4 +62,43 @@ export async function removeConnectedSlot(roomId: string, slot: Slot): Promise<v
   if (!state) return;
   state.connectedSlots = state.connectedSlots.filter((s) => s !== slot);
   await setRoomState(roomId, state);
+}
+
+// history caches
+//source of trutht is database mainly still
+
+export async function getCachedHistory(roomId: string): Promise<HistoryArgument[] | null> {
+  const raw = await redis.get(HISTORY_KEY(roomId));
+  return raw ? (JSON.parse(raw) as HistoryArgument[]) : null;
+}
+
+export async function setCachedHistory(roomId: string, history: HistoryArgument[]): Promise<void> {
+  await redis.set(HISTORY_KEY(roomId), JSON.stringify(history), "EX", TTL);
+}
+
+export async function appendCachedArgument(roomId: string, argument: HistoryArgument): Promise<void> {
+  const existing = await getCachedHistory(roomId);
+  const updated = existing ? [...existing, argument] : [argument];
+  await setCachedHistory(roomId, updated);
+}
+
+export async function updateCachedArgumentScores(
+  roomId: string,
+  argumentId: string,
+  dimension: string,
+  score: number | null,
+  critique: string
+): Promise<void> {
+  const existing = await getCachedHistory(roomId);
+  if (!existing) return;
+  const updated = existing.map((arg) =>
+    arg.argumentId === argumentId
+      ? { ...arg, scores: [...arg.scores.filter((s) => s.dimension !== dimension), { dimension, score, critique }] }
+      : arg
+  );
+  await setCachedHistory(roomId, updated);
+}
+
+export async function invalidateCachedHistory(roomId: string): Promise<void> {
+  await redis.del(HISTORY_KEY(roomId));
 }
