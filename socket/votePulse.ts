@@ -1,37 +1,41 @@
 import { Server } from "socket.io";
 import { getVoteCounts } from "../libs/votes";
-import { acquireLock, releaseLock } from "./redisLock";
-import redis from "../libs/redis";
+import { acquireLock, releaseLock, refreshLock } from "./redisLock";
 
-const pulseIntervals = new Map<string, NodeJS.Timeout>();
+interface PulseHandles {
+  pulse: NodeJS.Timeout;
+  lockRefresh: NodeJS.Timeout;
+}
 
-export async function startVotePulse(io: Server, roomId: string){
-  if(pulseIntervals.has(roomId)) return;
+const pulseIntervals = new Map<string, PulseHandles>();
+
+export async function startVotePulse(io: Server, roomId: string) {
+  if (pulseIntervals.has(roomId)) return;
 
   const locked = await acquireLock(`lock:pulse:${roomId}`, 10);
   if (!locked) return;
-  
-  const getPulseInterval = setInterval(async () => {
+
+  const pulse = setInterval(async () => {
     const votesCnt = await getVoteCounts(roomId);
     io.to(`room:${roomId}`).emit("vote:update", {
       for: votesCnt.for,
       against: votesCnt.against,
-      total: votesCnt.for + votesCnt.against
-    })
+      total: votesCnt.for + votesCnt.against,
+    });
   }, 200);
 
-  const lock = setInterval(async () => {
-    await redis.set(`lock:pulse:${roomId}`, "1", { ex: 10 });
+  const lockRefresh = setInterval(async () => {
+    await refreshLock(`lock:pulse:${roomId}`, 10);
   }, 5000);
-  
-  pulseIntervals.set(roomId, getPulseInterval);
+
+  pulseIntervals.set(roomId, { pulse, lockRefresh });
 }
 
-
-export async function stopVotePulse(roomId: string){
-  const pulseInterval = pulseIntervals.get(roomId);
-  if(pulseInterval){
-    clearInterval(pulseInterval);
+export async function stopVotePulse(roomId: string) {
+  const handles = pulseIntervals.get(roomId);
+  if (handles) {
+    clearInterval(handles.pulse);
+    clearInterval(handles.lockRefresh);
     pulseIntervals.delete(roomId);
     await releaseLock(`lock:pulse:${roomId}`);
   }
