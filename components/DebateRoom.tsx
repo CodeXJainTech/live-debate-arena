@@ -95,6 +95,12 @@ export default function DebateRoom({ socket, roomId }: Props) {
                 Hang tight, this can take a little while during busy periods.
               </p>
             )}
+            <a
+              href={`/history/${roomId}`}
+              className="text-sm text-purple-600 hover:text-purple-700 underline"
+            >
+              View full debate analysis
+            </a>
           </div>
         </div>
       );

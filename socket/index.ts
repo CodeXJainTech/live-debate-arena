@@ -145,55 +145,11 @@ export async function registerSocketHandlers(io: Server) {
     }
   });
 
-  io.on("connection", async (socket) => {
+  io.on("connection", (socket) => {
     const { user } = socket.data;
     const { debateId, topic } = socket.data;
-    await socket.join(`room:${user.roomId}`);
-
-    if (user.role === "debater" && user.slot) {
-      // cancel any pending disconnect timer for this slot
-      const key = disconnectKey(user.roomId, user.slot);
-      const pending = disconnectTimers.get(key);
-      if (pending) {
-        clearTimeout(pending);
-        disconnectTimers.delete(key);
-        socket.to(`room:${user.roomId}`).emit("room:peer_reconnected", {
-          slot: user.slot,
-          displayName: user.displayName,
-        });
-      }
-
-      await addConnectedSlot(user.roomId, user.slot);
-    }
-
-    await rehydrateTimers(io, user.roomId);
-
-    const roomState = await getRoomState(user.roomId);
-    socket.emit("room:state", {
-      ...roomState,
-      yourRole: user.role,
-      yourSlot: user.slot ?? null,
-      yourName: user.displayName,
-    });
-
-    // history: redis cache first, postgres fallback on miss(hit miss principle as ram-rom)
-    // every audience member joining a live debate hits this path,
-    // so a cache hit avoids a join query against argument+participant+score per connection
-    let history = await getCachedHistory(user.roomId);
-    if (history === null) {
-      history = await loadAndCacheHistory(debateId, user.roomId);
-    }
-
-    if (history.length > 0) {
-      socket.emit("room:history", { arguments: history });
-    }
-
-    socket.to(`room:${user.roomId}`).emit("room:peer_joined", {
-      role: user.role,
-      slot: user.slot ?? null,
-      displayName: user.displayName,
-    });
-
+    
+    //correct ordering to remove race conditions on vote testing.
     socket.on("debate:start", async () => {
       if (user.role !== "debater" || user.slot !== "A")
         return socket.emit("error", { message: "Only debater A can start" });
@@ -308,5 +264,55 @@ export async function registerSocketHandlers(io: Server) {
         });
       }
     });
+
+    //moved async logic here to avoid race condition on voting load.
+    (async () => {
+      await socket.join(`room:${user.roomId}`);
+
+      if (user.role === "debater" && user.slot) {
+        // cancel any pending disconnect timer for this slot
+        const key = disconnectKey(user.roomId, user.slot);
+        const pending = disconnectTimers.get(key);
+        if (pending) {
+          clearTimeout(pending);
+          disconnectTimers.delete(key);
+          socket.to(`room:${user.roomId}`).emit("room:peer_reconnected", {
+            slot: user.slot,
+            displayName: user.displayName,
+          });
+        }
+
+        await addConnectedSlot(user.roomId, user.slot);
+      }
+
+      await rehydrateTimers(io, user.roomId);
+
+      const roomState = await getRoomState(user.roomId);
+      socket.emit("room:state", {
+        ...roomState,
+        yourRole: user.role,
+        yourSlot: user.slot ?? null,
+        yourName: user.displayName,
+      });
+
+      // history: redis cache first, postgres fallback on miss(hit miss principle as ram-rom)
+      // every audience member joining a live debate hits this path,
+      // so a cache hit avoids a join query against argument+participant+score per connection
+      let history = await getCachedHistory(user.roomId);
+      if (history === null) {
+        history = await loadAndCacheHistory(debateId, user.roomId);
+      }
+
+      if (history.length > 0) {
+        socket.emit("room:history", { arguments: history });
+      }
+
+      socket.to(`room:${user.roomId}`).emit("room:peer_joined", {
+        role: user.role,
+        slot: user.slot ?? null,
+        displayName: user.displayName,
+      });
+    })();
   });
 }
+
