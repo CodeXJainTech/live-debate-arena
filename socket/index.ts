@@ -16,6 +16,7 @@ import { transitionToTopicReveal, advanceTurn } from "./handlers/stateHandlers";
 import { rehydrateTimers } from "./timers";
 import { castVote } from "../libs/votes";
 import { scoreArgument } from "./handlers/scoringHandler";
+import { checkConnectionRateLimit, checkVoteCooldown, checkVoteRateLimit } from "./rateLimit";
 
 const secret = new TextEncoder().encode(process.env.DEBATER_JWT_SECRET || "dummy-secret");
 
@@ -76,6 +77,15 @@ export async function registerSocketHandlers(io: Server) {
         socket.handshake.auth;
       if (!roomId || !displayName || !age || !sessionId)
         return next(new Error("Missing required fields"));
+
+      // cap how many connections one ip can open per minute.
+      const ip = socket.handshake.address;
+      const withinConnectionLimit = await checkConnectionRateLimit(ip);
+      if (!withinConnectionLimit) {
+        return next(new Error("Too many connections from this network. Please wait a moment."));
+      }
+
+
 
       // redis is the primary source for whether a room is active
       // only fall back to postgres when redis has no record of this room
@@ -171,9 +181,9 @@ export async function registerSocketHandlers(io: Server) {
         return socket.emit("error", { message: "Not your turn" });
 
       const text = data.text?.trim();
-      if (!text || text.length < 10)
+      if (!text || text.length < 10 || text.length > 1000)
         return socket.emit("error", {
-          message: "Argument must be at least 10 characters",
+          message: "Argument must be between 10 and 1000 characters",
         });
 
       // participant lookup - one row, cheap, still needed since slot to participant
@@ -229,6 +239,18 @@ export async function registerSocketHandlers(io: Server) {
       if (data.value !== "FOR" && data.value !== "AGAINST") {
         return socket.emit("error", { message: "Invalid vote value" });
       }
+
+      const cooldownOk = await checkVoteCooldown(user.sessionId);
+      if (!cooldownOk) {
+        return socket.emit("error", { message: "Please wait a moment before changing your vote again" });
+      }
+
+      const ip = socket.handshake.address;
+      const withinVoteLimit = await checkVoteRateLimit(ip);
+      if (!withinVoteLimit) {
+        return socket.emit("error", { message: "Vote limit reached for this network. Please wait a moment." });
+      }
+
 
       await castVote(user.roomId, user.sessionId, data.value);
       socket.emit("vote:confirmed", { value: data.value });
@@ -315,4 +337,3 @@ export async function registerSocketHandlers(io: Server) {
     })();
   });
 }
-

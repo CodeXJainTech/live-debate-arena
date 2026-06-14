@@ -245,13 +245,14 @@ export default function DebateRoom({ socket, roomId }: Props) {
                 <textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
+                  maxLength={1000}
                   placeholder="Type your argument..."
                   className="w-full text-sm text-gray-800 border border-gray-200 rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
                   rows={4}
                 />
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-xs text-gray-400">
-                    {input.trim().length} chars
+                    {input.trim().length}/1000
                   </span>
                   <button
                     onClick={handleSubmit}

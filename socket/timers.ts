@@ -42,7 +42,7 @@ export async function rehydrateTimers(io: Server, roomId: string) {
     if (state.state === "TOPIC_REVEAL" && state.topicRevealEndsAt) {
       const remaining = state.topicRevealEndsAt - now;
       const { transitionToRound } = await import("./handlers/stateHandlers");
-      if (remaining > 0) scheduleTransition(io, roomId, remaining, () => transitionToRound(io, roomId));
+      if (remaining > 0) await scheduleTransition(io, roomId, remaining, () => transitionToRound(io, roomId));
       else await transitionToRound(io, roomId);
     }
 
@@ -50,7 +50,7 @@ export async function rehydrateTimers(io: Server, roomId: string) {
       const remaining = state.roundEndsAt - now;
       const { advanceTurn } = await import("./handlers/stateHandlers");
       if (remaining > 0) {
-        scheduleTransition(io, roomId, remaining, async () => {
+        await scheduleTransition(io, roomId, remaining, async () => {
           io.to(`room:${roomId}`).emit("debate:turn_timeout", { slot: state.activeSlot });
           await advanceTurn(io, roomId);
         });
@@ -63,7 +63,7 @@ export async function rehydrateTimers(io: Server, roomId: string) {
     if (state.state === "VOTING" && state.votingEndsAt) {
       const remaining = state.votingEndsAt - now;
       const { transitionToVerdict } = await import("./handlers/stateHandlers");
-      if (remaining > 0) scheduleTransition(io, roomId, remaining, () => transitionToVerdict(io, roomId));
+      if (remaining > 0) await scheduleTransition(io, roomId, remaining, () => transitionToVerdict(io, roomId));
       else await transitionToVerdict(io, roomId);
     }
 

@@ -48,6 +48,7 @@ export default function HomePage() {
               <input
                 type="text"
                 value={topic}
+                maxLength={100}
                 onChange={(e) => setTopic(e.target.value)}
                 placeholder="e.g. Remote work is better than office work"
                 className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
