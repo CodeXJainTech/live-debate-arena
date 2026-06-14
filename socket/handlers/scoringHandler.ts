@@ -1,10 +1,11 @@
 import { scoreEvidence, scoreLogic, scorePersuasion } from "../../libs/gemini";
 import { prisma } from "../../libs/prisma";
+import { updateCachedArgumentScores } from "../roomState";
 import { Server } from "socket.io";
 
 export async function scoreArgument(io: Server, roomId: string, argumentId: string, topic: string, argumentText: string, slot: "A" | "B") {
 
-  io.to(`room:${roomId}`).emit("scoring: started", { argumentId, slot });
+  io.to(`room:${roomId}`).emit("scoring:started", { argumentId, slot });
 
   const dimension = ["LOGIC", "EVIDENCE", "PERSUASION"] as const;
   const scorings = [scoreLogic(topic, argumentText), scoreEvidence(topic, argumentText), scorePersuasion(topic, argumentText)];
@@ -17,6 +18,7 @@ export async function scoreArgument(io: Server, roomId: string, argumentId: stri
         score: res.score,
         critique: res.critique,
       });
+      updateCachedArgumentScores(roomId, argumentId, dimension[i], res.score, res.critique);
     }).catch(() => {
       io.to(`room:${roomId}`).emit("scoring:dimension", {
         argumentId,
@@ -24,6 +26,7 @@ export async function scoreArgument(io: Server, roomId: string, argumentId: stri
         score: null,
         critique: "Scoring unavailable",
       });
+      updateCachedArgumentScores(roomId, argumentId, dimension[i], null, "Scoring unavailable");
     });
   });
 
@@ -47,4 +50,3 @@ export async function scoreArgument(io: Server, roomId: string, argumentId: stri
 
   io.to(`room:${roomId}`).emit("scoring:complete", { argumentId });
 }
-

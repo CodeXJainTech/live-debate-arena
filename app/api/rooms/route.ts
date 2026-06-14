@@ -3,7 +3,7 @@ import { prisma } from "@/libs/prisma";
 import { SignJWT } from "jose";
 import { v4 as uuidv4 } from "uuid";
 
-const secret = new TextEncoder().encode(process.env.DEBATER_JWT_SECRET!);
+const secret = new TextEncoder().encode(process.env.DEBATER_JWT_SECRET || "dummy-docker-setup");
 
 async function signDebaterToken(roomId: string, slot: "A" | "B") {
   return new SignJWT({ roomId, slot })
@@ -16,9 +16,9 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { topic, totalRounds, hostName } = body;
 
-  if (!topic || typeof topic !== "string" || topic.trim().length < 10) {
+  if (!topic || typeof topic !== "string" || topic.trim().length < 10 || topic.trim().length > 200) {
     return NextResponse.json(
-      { error: "Topic must be at least 10 characters" },
+      { error: "Topic must be between 10 and 200 characters" },
       { status: 400 },
     );
   }

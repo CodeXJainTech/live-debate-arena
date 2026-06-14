@@ -27,58 +27,88 @@ export interface ArgumentEvent {
   submittedAt: string;
 }
 
+interface HistoryArgument extends ArgumentEvent {
+  scores: { dimension: string; score: number; critique: string }[];
+}
+
 export function useDebateState(socket: Socket | null) {
   const [roomState, setRoomState] = useState<DebateRoomState | null>(null);
-  const [argumentts, setArgumentts] = useState<ArgumentEvent[]>([]);
+  const [arguments_, setArguments] = useState<ArgumentEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [reconnecting, setReconnecting] = useState<string | null>(null);
 
   useEffect(() => {
     if (!socket) return;
+
     socket.on("room:state", (data: DebateRoomState) => setRoomState(data));
+
     socket.on("debate:state_changed", (data: Partial<DebateRoomState>) =>
       setRoomState((prev) => (prev ? { ...prev, ...data } : null))
     );
-    socket.on("debate:argument_submitted", (arg: ArgumentEvent) =>
-      setArgumentts((prev) => [...prev, arg])
-    );
-    socket.on("error", (data: { message: string }) => {
-      setError(data.message);
-      setTimeout(() => setError(null), 4000);
+
+    // full history on join/rejoin — replaces local list entirely to avoid duplicates
+    socket.on("room:history", (data: { arguments: HistoryArgument[] }) => {
+      setArguments(data.arguments);
     });
-    socket.on("room:peer_joined", (peer: { role: string; slot: "A" | "B" | null }) => {
-      if (peer.role === "debater" && peer.slot) {
-        const joinedSlot = peer.slot;
+
+    socket.on("debate:argument_submitted", (arg: ArgumentEvent) => {
+      setArguments((prev) => {
+        // avoid duplicates if history and live event overlap
+        if (prev.find((a) => a.argumentId === arg.argumentId)) return prev;
+        return [...prev, arg];
+      });
+    });
+
+    socket.on("room:peer_joined", (data: { role: string; slot: string | null }) => {
+      if (data.slot) {
         setRoomState((prev) => {
-          if (!prev) return prev;
-          const slots = prev.connectedSlots || [];
-          if (!slots.includes(joinedSlot)) {
-            return { ...prev, connectedSlots: [...slots, joinedSlot] };
-          }
-          return prev;
+          if (!prev) return null;
+          const connectedSlots = (prev as any).connectedSlots ?? [];
+          if (connectedSlots.includes(data.slot)) return prev;
+          return { ...prev, connectedSlots: [...connectedSlots, data.slot] };
+        });
+      }
+    });
+
+    socket.on("room:peer_left", (data: { slot: string | null }) => {
+      if (data.slot) {
+        setRoomState((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            connectedSlots: (prev as any).connectedSlots?.filter(
+              (s: string) => s !== data.slot
+            ) ?? [],
+          };
         });
       }
     });
     
-    socket.on("room:peer_left", (peer: { role: string; slot: "A" | "B" | null }) => {
-      if (peer.role === "debater" && peer.slot) {
-        const leftSlot = peer.slot;
-        setRoomState((prev) => {
-          if (!prev) return prev;
-          const slots = prev.connectedSlots || [];
-          return { ...prev, connectedSlots: slots.filter((s) => s !== leftSlot) };
-        });
-      }
+    socket.on("room:peer_disconnected", (data: { slot: string; displayName: string }) => {
+      setReconnecting(`Debater ${data.slot} disconnected. Waiting for reconnection...`);
+    });
+
+    socket.on("room:peer_reconnected", (data: { slot: string; displayName: string }) => {
+      setReconnecting(null);
+    });
+
+    socket.on("error", (data: { message: string }) => {
+      setError(data.message);
+      setTimeout(() => setError(null), 4000);
     });
 
     return () => {
       socket.off("room:state");
       socket.off("debate:state_changed");
+      socket.off("room:history");
       socket.off("debate:argument_submitted");
-      socket.off("error");
       socket.off("room:peer_joined");
       socket.off("room:peer_left");
+      socket.off("room:peer_disconnected");
+      socket.off("room:peer_reconnected");
+      socket.off("error");
     };
   }, [socket]);
 
-  return { roomState, arguments: argumentts, error };
+  return { roomState, arguments: arguments_, error, reconnecting };
 }
